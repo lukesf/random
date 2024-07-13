@@ -1,5 +1,5 @@
 # Cad Query CAD
-* [CadQuery project|https://github.com/CadQuery]
+* [CadQuery project](https://github.com/CadQuery)
   
 Scripts to parametrically generate parts
 
