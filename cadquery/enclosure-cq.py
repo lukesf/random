@@ -6,7 +6,7 @@ p_outerWidth = 120.0  # Outer width of box enclosure
 p_outerLength = 100.0  # Outer length of box enclosure
 p_outerHeight = 40.0  # Outer height of box enclosure
 
-p_thickness = 3.0  # Thickness of the box walls
+p_thickness = 2.4  # Thickness of the box walls
 p_sideRadius = 4.0  # Radius for the curves around the sides of the box
 p_topAndBottomRadius = (
     2.0  # Radius for the curves on the top and bottom edges of the box
@@ -87,7 +87,7 @@ for h in p_sideholes:
            .hole(h["dia"], 10)
     )       
     # make slot
-    y0 = p_outerHeight-h["loc"][1]
+    y0 = p_outerHeight-h["loc"][1]+p_thickness
     sW = 6
 
     cutshape = (
@@ -100,6 +100,55 @@ for h in p_sideholes:
     key = box.intersect(cutshape)
     keys.append(key)
     box = box.cut(cutshape)
+
+
+# Tabs
+p_tabW = p_thickness
+p_tabWa = p_thickness/3.
+p_tabH = -10.
+p_tabL = 12.
+tab_profile = [(0,0), (p_tabW,0), (p_tabW, p_tabH), (0, p_tabH), (-p_tabWa, 3*p_tabH/4.), (0, p_tabH/2.)]
+#Tab locations (mirrored about center):
+p_tabs = [{"wp":"YZ", "trans":(-p_outerWidth*3/8., -p_outerLength/2.+p_thickness, p_outerHeight)},
+#          {"wp":"YZ", "trans":(+p_outerWidth*5/16., -p_outerLength/2.+p_thickness, p_outerHeight)},
+          ]
+tabs = []
+for t in p_tabs:
+    tabshape = (
+        cq.Workplane(t["wp"])
+        .polyline(tab_profile).close()
+        .extrude(p_tabL/2., both= True)
+    )
+    # make slightly larger shape for slot
+    tabshape2 = (
+        cq.Workplane(t["wp"])
+        .polyline(tab_profile).close()
+        .extrude(p_tabL/2.+1, both= True)
+    )
+    # Make 4 symmetric tabs
+    tabshape = tabshape.translate(t["trans"])
+    tabshape2 = tabshape2.translate(t["trans"])
+    tabslot = box.intersect(tabshape2)
+    box = box.cut(tabslot)
+    tabs.append(tabshape)
+
+    tabshape = tabshape.mirror("XZ")
+    tabshape2 = tabshape2.mirror("XZ")
+    tabslot = box.intersect(tabshape2)
+    box = box.cut(tabslot)
+    tabs.append(tabshape)
+
+    tabshape = tabshape.mirror("YZ")
+    tabshape2 = tabshape2.mirror("YZ")
+    tabslot = box.intersect(tabshape2)
+    box = box.cut(tabslot)
+    tabs.append(tabshape)
+
+    tabshape = tabshape.mirror("XZ")
+    tabshape2 = tabshape2.mirror("XZ")
+    tabslot = box.intersect(tabshape2)
+    box = box.cut(tabslot)
+    tabs.append(tabshape)
 
 
 
@@ -116,14 +165,19 @@ lowerLid = lid.translate((0, 0, -p_lipHeight))
 cutlip = lowerLid.cut(bottom)
 cutlip = cutlip.translate((0, 0, p_lipHeight))
 
+# Add keys
 for k in keys:
     cutlip = cutlip.union(k)
+
+# Add tabs
+for t in tabs:
+    cutlip = cutlip.union(t)
+
+
 
 cutlip2 = cutlip.translate(
     (p_outerWidth + p_thickness, 0, p_thickness - p_outerHeight)
 )
-
-
 
 topOfLid = cutlip2
 
@@ -133,13 +187,19 @@ if p_flipLid:
 
 # return the combined result
 #result = topOfLid.union(bottom)
+
+# Comment out to debug intermediate shapes
 del oshell,ishell, box
 
 del cutshape, key, k
+del t, tabslot, tabshape, tabshape2
 del lid, lowerLid, cutlip, cutlip2
 
 
+
+
 '''
+# Code to add boreholes in lid
 p_boreDiameter = 8.0  # Diameter of the counterbore hole, if any
 p_boreDepth = 1.0  # Depth of the counterbore hole, if
 p_countersinkDiameter = 0.0  # Outer diameter of countersink. Should roughly match the outer diameter of the screw head
