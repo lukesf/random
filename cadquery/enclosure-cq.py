@@ -51,6 +51,7 @@ p_posts= [
     {"ws":"<Z", "OD":4., "ID":2., "H":6., "loc":(-52,+8),"pnts":[(16,0),(0, 30)]},
     {"ws":"<Z", "OD":4., "ID":2., "H":6., "loc":(-40,-40),"pnts":[(0,0),(37, 0),(37, 37),(0, 37)]},
     {"ws":"<Z", "OD":4., "ID":2., "H":6., "loc":(-40,-40),"pnts":[(0,0),(37, 0),(37, 37),(0, 37)]},
+    {"ws":"<Z", "OD":4., "ID":2., "H":6., "loc":(10,-40),"pnts":[(0,0),(37, 0),(37, 37),(0, 37)]},
 
     ]
 
@@ -67,16 +68,11 @@ for p in p_posts:
 
 # Make the side holes
 p_sideholes= [
-    {"ws":">X", "dia":30., "loc":(-20, 15+p_thickness),
-     "wp":"YZ", "trans":(p_outerWidth/2-p_thickness, -20, (15+p_thickness)+(p_outerHeight-(15+p_thickness))/2.)},
-    {"ws":">Y", "dia":16., "loc":(20, +p_outerHeight/2.+5),
-     "wp":"XZ", "trans":(-20, p_outerLength/2., p_outerHeight*3/4.)},
-    {"ws":">Y", "dia":16., "loc":(0, +p_outerHeight/2.+5),
-     "wp":"XZ", "trans":(0, p_outerLength/2., p_outerHeight*3/4.)},
-    {"ws":"<Y", "dia":11., "loc":(-30, +p_outerHeight/2.+5),
-     "wp":"XZ","trans":(-30, -p_outerLength/2.+p_thickness, p_outerHeight*3/4.)},
-#    {"ws":">Y", "dia":16., "loc":(p_outerWidth/2., -p_outerHeight/2.),
-#     "wp":"XZ", "loc2":(-40, -p_outerHeight/2.),"trans":(0, p_outerLength/2., p_outerHeight*3/4.)},
+    {"ws":">X", "dia":30., "loc":(-20, 15+p_thickness)},
+    {"ws":">Y", "dia":16., "loc":(20, +p_outerHeight/2.+5)},
+    {"ws":">Y", "dia":16., "loc":(0, +p_outerHeight/2.+5)},
+    {"ws":"<Y", "dia":11., "loc":(-30, +p_outerHeight/2.+5)},
+#    {"ws":"<X", "dia":11., "loc":(-10, +p_outerHeight/2.+5)},
     ]
 
 keys = []
@@ -87,15 +83,30 @@ for h in p_sideholes:
            .hole(h["dia"], 10)
     )       
     # make slot
-    y0 = p_outerHeight-h["loc"][1]+p_thickness
+    y0 = p_outerHeight-p_thickness-h["loc"][1]
     sW = 6
 
+    if (h["ws"]==">X"):
+        wp = "YZ"
+        trans = (p_outerWidth/2-p_thickness, h["loc"][0], h["loc"][1] + y0/2.)
+    if (h["ws"]=="<X"):
+        wp = "YZ"
+        trans = (-p_outerWidth/2, -h["loc"][0], h["loc"][1] + y0/2.)
+
+    if (h["ws"]==">Y"):
+        wp = "XZ"
+        trans = (-h["loc"][0], p_outerLength/2., h["loc"][1] + y0/2.)
+    if (h["ws"]=="<Y"):
+        wp = "XZ"
+        trans = (h["loc"][0], -p_outerLength/2.+p_thickness, h["loc"][1] + y0/2.)
+
+
     cutshape = (
-        cq.Workplane(h["wp"])
+        cq.Workplane(wp)
         .rect(sW, y0)
         .extrude(p_thickness)
     )
-    cutshape = cutshape.translate(h["trans"])
+    cutshape = cutshape.translate(trans)
 
     key = box.intersect(cutshape)
     keys.append(key)
@@ -163,7 +174,8 @@ for t in p_tabs:
 # translate the lid, and subtract the bottom from it to produce the lid inset
 lowerLid = lid.translate((0, 0, -p_lipHeight))
 cutlip = lowerLid.cut(bottom)
-cutlip = cutlip.translate((0, 0, p_lipHeight))
+#cutlip = cutlip.translate((0, 0, p_lipHeight))
+
 
 # Add keys
 for k in keys:
@@ -175,15 +187,16 @@ for t in tabs:
 
 
 
+
 cutlip2 = cutlip.translate(
     (p_outerWidth + p_thickness, 0, p_thickness - p_outerHeight)
 )
 
-topOfLid = cutlip2
+top = cutlip2
 
 # flip lid upside down if desired
 if p_flipLid:
-    topOfLid = topOfLid.rotateAboutCenter((1, 0, 0), 180)
+    top = top.rotateAboutCenter((1, 0, 0), 180)
 
 # return the combined result
 #result = topOfLid.union(bottom)
@@ -192,7 +205,7 @@ if p_flipLid:
 del oshell,ishell, box
 
 del cutshape, key, k
-del t, tabslot, tabshape, tabshape2
+del tabslot, tabshape, tabshape2, t
 del lid, lowerLid, cutlip, cutlip2
 
 
